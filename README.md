@@ -1,47 +1,144 @@
 # F1 Race Report Generator
 
-Generate social media posts for F1 races with memory storage.
+Two-agent system for generating engaging F1 race social media posts with persistent memory storage.
+
+## Architecture
+
+**Agent 1: Data Collection**
+- Validates user input (GP name or round number)
+- Retrieves race data using FastF1
+- Automatic fallback to previous year if data unavailable
+
+**Agent 2: Report Generation**
+- Generates engaging social media content using Gemini 2.5 Flash
+- Creates 200-250 word Instagram-optimized posts
+- Includes race story and key highlights
+
+**Memory: Persistent Storage**
+- Vertex AI Memory Bank for cloud storage
+- Local JSON backup for quick access
+- Search and retrieval capabilities
 
 ## Quick Start
 
-1. Open `f1_report_notebook.ipynb`
-2. Run all cells
-3. Generate reports for any 2024/2025 race
+### Option 1: Interactive Notebook
 
-## Memory Workflow
+```bash
+# Open the Jupyter notebook
+jupyter notebook f1_report_notebook.ipynb
 
-Uses **Vertex AI Memory Bank** for persistent storage:
+# Or use in Kaggle
+# Upload f1_report_notebook.ipynb to Kaggle
+```
 
-- **Initialize**: Creates/connects to Agent Engine on startup
-- **Ingest**: `memory.add_session_to_memory()` - stores reports persistently
-- **Retrieve**: `memory.search_memory()` - finds reports (survives restarts)
-
-## Example Usage
+Run all cells and use:
 
 ```python
-# Generate and store report
-report = generate_f1_report("Bahrain")
+# Generate a report
+report = generate_f1_report("Monaco")
 
-# Search memory
-search_reports("Bahrain")
+# Search reports
+search_reports("Monaco")
 
-# List all
+# List all reports
 list_reports()
+```
+
+### Option 2: Cloud Run API
+
+Deploy as a REST API service:
+
+```bash
+# Quick deployment (Linux/Mac)
+chmod +x deploy.sh
+./deploy.sh
+
+# Using Cloud Build
+gcloud builds submit --config cloudbuild.yaml
+
+# Manual deployment
+docker build -t gcr.io/PROJECT_ID/f1-report-system .
+docker push gcr.io/PROJECT_ID/f1-report-system
+gcloud run deploy f1-report-system --image gcr.io/PROJECT_ID/f1-report-system
+```
+
+See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions.
+
+## API Usage
+
+```bash
+# Generate race report
+curl -X POST https://SERVICE_URL/analyze \
+  -H "Content-Type: application/json" \
+  -d '{"race_input": "Monaco"}'
+
+# List all reports
+curl https://SERVICE_URL/history
+
+# Search reports
+curl -X POST https://SERVICE_URL/search \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Monaco"}'
 
 # Get specific report
-get_report("2024_R1")
+curl https://SERVICE_URL/report/2025_R8
 ```
+
+See [API.md](API.md) for complete API reference.
+
+## Configuration
+
+Create `.env` file:
+
+```bash
+cp .env.example .env
+```
+
+Edit with your Google Cloud configuration:
+
+```
+GCP_PROJECT_ID=your-project-id
+GCP_LOCATION=us-central1
+```
+
+## Features
+
+- Input validation for GP names and round numbers
+- Comprehensive race data collection (podium, grid positions, results)
+- AI-generated social media content
+- Persistent memory with search capabilities
+- RESTful API for integration
+- Automatic data caching for performance
+- Year fallback for unavailable data
 
 ## Requirements
 
-- Google Cloud Project with Vertex AI enabled
-- Vertex AI Agent Engine (auto-created on first run)
-- FastF1 library
-- Set `GCP_PROJECT_ID` and `GCP_LOCATION` in `.env`
+- Google Cloud Project with Vertex AI API enabled
+- Cloud Run API enabled (for deployment)
+- Python 3.11+
+- Docker (for deployment)
 
-## Setup Notes
+## Documentation
 
-- First run creates a Vertex AI Agent Engine instance (persistent resource)
-- Reports are stored in Vertex AI Memory Bank and persist across restarts
-- The system uses a local cache for quick access with Memory Bank backup
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Detailed deployment guide
+- [API.md](API.md) - Complete API documentation
+- [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Project architecture
+
+## Race Coverage
+
+Supports all 2024/2025 F1 races:
+- 24 races per season
+- All circuits and GPs
+- Automatic data retrieval from FastF1
+- Fallback to previous year if current data unavailable
+
+## Data Sources
+
+- **Primary**: FastF1 library (official F1 timing data)
+- **Cache**: Local cache for improved performance
+- **Fallback**: Automatic year fallback for recent races
+
+## License
+
+See project license file for details.
 
