@@ -18,7 +18,14 @@ from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from vertexai.generative_models import GenerativeModel
-from google.adk.memory import VertexAiMemoryBankService
+
+# Optional import for Vertex AI Memory Bank
+try:
+    from google.adk.memory import VertexAiMemoryBankService
+    ADK_AVAILABLE = True
+except ImportError:
+    ADK_AVAILABLE = False
+    VertexAiMemoryBankService = None
 
 
 # Configuration
@@ -67,11 +74,17 @@ class MemoryService:
     """Persistent storage for race reports using Vertex AI Memory Bank."""
     
     def __init__(self, project: str, location: str, agent_engine_id: str, backup_file: str = "f1_reports_backup.json"):
-        self._service = VertexAiMemoryBankService(
-            project=project,
-            location=location,
-            agent_engine_id=agent_engine_id
-        )
+        self._service = None
+        if ADK_AVAILABLE and VertexAiMemoryBankService:
+            try:
+                self._service = VertexAiMemoryBankService(
+                    project=project,
+                    location=location,
+                    agent_engine_id=agent_engine_id
+                )
+            except Exception:
+                # Fallback to local-only storage if Memory Bank fails
+                pass
         self._cache = {}
         self._backup_file = backup_file
         self._load_from_backup()
@@ -111,13 +124,19 @@ class MemoryService:
     
     async def _async_add_session(self, race_id: str, entry: Dict[str, Any]):
         """Async helper to add session to Memory Bank."""
-        from google.adk.sessions import Session
-        session = Session(
-            session_id=race_id,
-            user_id="f1_report_system",
-            metadata=entry
-        )
-        await self._service.add_session_to_memory(session)
+        if not self._service:
+            return
+        try:
+            from google.adk.sessions import Session
+            session = Session(
+                session_id=race_id,
+                user_id="f1_report_system",
+                metadata=entry
+            )
+            await self._service.add_session_to_memory(session)
+        except Exception:
+            # Silently fail if Memory Bank is unavailable
+            pass
     
     def search_memory(self, query: str) -> List[Dict[str, Any]]:
         """Search stored reports."""
@@ -334,27 +353,25 @@ class SearchRequest(BaseModel):
 async def lifespan(app: FastAPI):
     """Initialize services on startup."""
     global agent_engine_id, memory, agent1, agent2
-    
-    # Initialize Vertex AI
-    vertexai.init(project=PROJECT_ID, location=LOCATION)
-    nest_asyncio.apply()
+
+    # Initialize Vertex AI for GenerativeModel (Gemini)
+    try:
+        vertexai.init(project=PROJECT_ID, location=LOCATION)
+    except Exception:
+        # Allow local/unauthenticated runs; Gemini will fail lazily on first call
+        pass
     fastf1.Cache.enable_cache('f1_cache')
-    
-    # Initialize Agent Engine
-    client = vertexai.Client(project=PROJECT_ID, location=LOCATION)
-    agent_engines = list(client.agent_engines.list())
-    if agent_engines:
-        agent_engine = agent_engines[0]
-    else:
-        agent_engine = client.agent_engines.create()
-    
-    agent_engine_id = agent_engine.api_resource.name.split("/")[-1]
-    
+
+    # For this project we don't require a real Agent Engine ID.
+    # MemoryService will fall back to local JSON storage when
+    # Vertex AI Memory Bank (google-adk) is unavailable.
+    agent_engine_id = os.getenv("AGENT_ENGINE_ID", "local")
+
     # Initialize services
     memory = MemoryService(PROJECT_ID, LOCATION, agent_engine_id)
     agent1 = DataCollectionAgent(F1_2025_CALENDAR)
     agent2 = ReportGenerationAgent(MODEL_NAME)
-    
+
     yield
 
 

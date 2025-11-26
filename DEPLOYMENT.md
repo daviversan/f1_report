@@ -2,147 +2,75 @@
 
 ## Prerequisites
 
-- Google Cloud Project with billing enabled
-- Vertex AI API enabled
-- Cloud Run API enabled
-- Docker installed locally
-- gcloud CLI installed and authenticated
+**PowerShell:**
+```powershell
+# 1. Set project
+gcloud config set project gen-lang-client-0467867580
 
-## Configuration
+# 2. Enable APIs
+gcloud services enable cloudbuild.googleapis.com
+gcloud services enable containerregistry.googleapis.com
+gcloud services enable run.googleapis.com
+gcloud services enable aiplatform.googleapis.com
 
-Create a `.env` file based on `.env.example`:
+# 3. Grant Cloud Build permissions
+$PROJECT_NUMBER = gcloud projects describe gen-lang-client-0467867580 --format="value(projectNumber)"
+gcloud projects add-iam-policy-binding gen-lang-client-0467867580 --member="serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com" --role="roles/run.admin"
+gcloud projects add-iam-policy-binding gen-lang-client-0467867580 --member="serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com" --role="roles/iam.serviceAccountUser"
+gcloud projects add-iam-policy-binding gen-lang-client-0467867580 --member="serviceAccount:$PROJECT_NUMBER@cloudbuild.gserviceaccount.com" --role="roles/storage.admin"
+```
 
+**Bash/Linux/Mac:**
 ```bash
-cp .env.example .env
+# 1. Set project
+gcloud config set project gen-lang-client-0467867580
+
+# 2. Enable APIs
+gcloud services enable cloudbuild.googleapis.com containerregistry.googleapis.com run.googleapis.com aiplatform.googleapis.com
+
+# 3. Grant Cloud Build permissions
+PROJECT_NUMBER=$(gcloud projects describe gen-lang-client-0467867580 --format="value(projectNumber)")
+gcloud projects add-iam-policy-binding gen-lang-client-0467867580 --member="serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" --role="roles/run.admin"
+gcloud projects add-iam-policy-binding gen-lang-client-0467867580 --member="serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" --role="roles/iam.serviceAccountUser"
+gcloud projects add-iam-policy-binding gen-lang-client-0467867580 --member="serviceAccount:${PROJECT_NUMBER}@cloudbuild.gserviceaccount.com" --role="roles/storage.admin"
 ```
 
-Edit `.env` with your project details:
-
-```
-GCP_PROJECT_ID=your-project-id
-GCP_LOCATION=us-central1
-```
-
-## Deployment Methods
-
-### Method 1: Automated Deployment Script
-
-```bash
-chmod +x deploy.sh
-./deploy.sh
-```
-
-### Method 2: Cloud Build
+## Deploy
 
 ```bash
 gcloud builds submit --config cloudbuild.yaml
 ```
 
-### Method 3: Manual Deployment
-
-1. Build the container:
-
+Get service URL:
 ```bash
-docker build -t gcr.io/PROJECT_ID/f1-report-system .
+gcloud run services describe f1-report-system --region us-central1 --format 'value(status.url)'
 ```
 
-2. Push to Google Container Registry:
+## Test API
 
 ```bash
-docker push gcr.io/PROJECT_ID/f1-report-system
-```
+# Health check
+curl https://YOUR_SERVICE_URL/
 
-3. Deploy to Cloud Run:
-
-```bash
-gcloud run deploy f1-report-system \
-  --image gcr.io/PROJECT_ID/f1-report-system \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated \
-  --memory 2Gi \
-  --cpu 2 \
-  --timeout 300 \
-  --set-env-vars GCP_PROJECT_ID=PROJECT_ID,GCP_LOCATION=us-central1
-```
-
-## API Usage
-
-After deployment, get your service URL:
-
-```bash
-gcloud run services describe f1-report-system \
-  --platform managed \
-  --region us-central1 \
-  --format 'value(status.url)'
-```
-
-### Generate Race Report
-
-```bash
-curl -X POST https://SERVICE_URL/analyze \
+# Generate report
+curl -X POST https://YOUR_SERVICE_URL/analyze \
   -H "Content-Type: application/json" \
   -d '{"race_input": "Monaco"}'
-```
 
-### List All Reports
-
-```bash
-curl https://SERVICE_URL/history
-```
-
-### Search Reports
-
-```bash
-curl -X POST https://SERVICE_URL/search \
-  -H "Content-Type: application/json" \
-  -d '{"query": "Monaco"}'
-```
-
-### Get Specific Report
-
-```bash
-curl https://SERVICE_URL/report/2025_R8
+# List reports
+curl https://YOUR_SERVICE_URL/history
 ```
 
 ## Local Development
-
-Run locally with uvicorn:
 
 ```bash
 pip install -r requirements.txt
 uvicorn main:app --reload --port 8080
 ```
 
-Access the API at `http://localhost:8080`
-
-## Resource Configuration
-
-The default configuration uses:
-
-- Memory: 2Gi
-- CPU: 2 cores
-- Timeout: 300 seconds (5 minutes)
-
-Adjust these in `cloudbuild.yaml` or deployment script as needed.
-
 ## Troubleshooting
 
-### Build Failures
-
-- Ensure Docker is running
-- Check that all required APIs are enabled
-- Verify authentication with `gcloud auth list`
-
-### Runtime Errors
-
-- Check Cloud Run logs: `gcloud run logs read f1-report-system`
-- Verify environment variables are set correctly
-- Ensure Vertex AI Agent Engine is created
-
-### Data Issues
-
-- FastF1 requires internet access for race data
-- Cache directory is created automatically
-- Recent races may not have data available yet
-
+- **API not enabled**: Run prerequisite commands above
+- **Permission denied**: Grant Cloud Build service account roles
+- **Build fails**: Check logs with `gcloud builds log [BUILD_ID]`
+- **Service errors**: Check logs with `gcloud run logs read f1-report-system`

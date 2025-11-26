@@ -1,144 +1,78 @@
 # F1 Race Report Generator
 
-Two-agent system for generating engaging F1 race social media posts with persistent memory storage.
+Two-agent system for generating F1 race social media posts with persistent memory storage.
 
 ## Architecture
 
-**Agent 1: Data Collection**
-- Validates user input (GP name or round number)
-- Retrieves race data using FastF1
-- Automatic fallback to previous year if data unavailable
-
-**Agent 2: Report Generation**
-- Generates engaging social media content using Gemini 2.5 Flash
-- Creates 200-250 word Instagram-optimized posts
-- Includes race story and key highlights
-
-**Memory: Persistent Storage**
-- Vertex AI Memory Bank for cloud storage
-- Local JSON backup for quick access
-- Search and retrieval capabilities
+**Agent 1: Data Collection** - Validates input, retrieves race data using FastF1  
+**Agent 2: Report Generation** - Generates social media content using Gemini 2.5 Flash  
+**Memory: Persistent Storage** - Local JSON backup with search capabilities
 
 ## Quick Start
 
-### Option 1: Interactive Notebook
+### Deploy to Cloud Run
 
 ```bash
-# Open the Jupyter notebook
-jupyter notebook f1_report_notebook.ipynb
+# 1. Setup (one-time)
+gcloud config set project gen-lang-client-0467867580
+gcloud services enable cloudbuild.googleapis.com containerregistry.googleapis.com run.googleapis.com aiplatform.googleapis.com
 
-# Or use in Kaggle
-# Upload f1_report_notebook.ipynb to Kaggle
-```
-
-Run all cells and use:
-
-```python
-# Generate a report
-report = generate_f1_report("Monaco")
-
-# Search reports
-search_reports("Monaco")
-
-# List all reports
-list_reports()
-```
-
-### Option 2: Cloud Run API
-
-Deploy as a REST API service:
-
-```bash
-# Quick deployment (Linux/Mac)
-chmod +x deploy.sh
-./deploy.sh
-
-# Using Cloud Build
+# 2. Deploy
 gcloud builds submit --config cloudbuild.yaml
 
-# Manual deployment
-docker build -t gcr.io/PROJECT_ID/f1-report-system .
-docker push gcr.io/PROJECT_ID/f1-report-system
-gcloud run deploy f1-report-system --image gcr.io/PROJECT_ID/f1-report-system
+# 3. Get URL
+gcloud run services describe f1-report-system --region us-central1 --format 'value(status.url)'
 ```
 
-See [DEPLOYMENT.md](DEPLOYMENT.md) for detailed instructions.
+See [DEPLOYMENT.md](DEPLOYMENT.md) for complete setup.
+
+### Interactive Notebook
+
+```bash
+jupyter notebook f1_report_notebook.ipynb
+# Or upload to Kaggle Notebooks
+```
+
+### Local Development
+
+```bash
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8080
+```
 
 ## API Usage
 
 ```bash
-# Generate race report
+# Generate report
 curl -X POST https://SERVICE_URL/analyze \
   -H "Content-Type: application/json" \
   -d '{"race_input": "Monaco"}'
 
-# List all reports
+# List reports
 curl https://SERVICE_URL/history
 
-# Search reports
+# Search
 curl -X POST https://SERVICE_URL/search \
   -H "Content-Type: application/json" \
   -d '{"query": "Monaco"}'
-
-# Get specific report
-curl https://SERVICE_URL/report/2025_R8
 ```
 
 See [API.md](API.md) for complete API reference.
 
-## Configuration
+## Kaggle Submission
 
-Create `.env` file:
-
-```bash
-cp .env.example .env
-```
-
-Edit with your Google Cloud configuration:
-
-```
-GCP_PROJECT_ID=your-project-id
-GCP_LOCATION=us-central1
-```
-
-## Features
-
-- Input validation for GP names and round numbers
-- Comprehensive race data collection (podium, grid positions, results)
-- AI-generated social media content
-- Persistent memory with search capabilities
-- RESTful API for integration
-- Automatic data caching for performance
-- Year fallback for unavailable data
-
-## Requirements
-
-- Google Cloud Project with Vertex AI API enabled
-- Cloud Run API enabled (for deployment)
-- Python 3.11+
-- Docker (for deployment)
+- **Notebook**: `f1_report_notebook.ipynb` - Interactive execution
+- **Cloud Run**: Deploy for live API demo
+- **Local Docker**: Test without GCP setup
 
 ## Documentation
 
-- [DEPLOYMENT.md](DEPLOYMENT.md) - Detailed deployment guide
-- [API.md](API.md) - Complete API documentation
-- [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Project architecture
+- [DEPLOYMENT.md](DEPLOYMENT.md) - Deployment guide
+- [API.md](API.md) - API documentation
+- [PROJECT_STRUCTURE.md](PROJECT_STRUCTURE.md) - Architecture
 
-## Race Coverage
+## Requirements
 
-Supports all 2024/2025 F1 races:
-- 24 races per season
-- All circuits and GPs
-- Automatic data retrieval from FastF1
-- Fallback to previous year if current data unavailable
-
-## Data Sources
-
-- **Primary**: FastF1 library (official F1 timing data)
-- **Cache**: Local cache for improved performance
-- **Fallback**: Automatic year fallback for recent races
-
-## License
-
-See project license file for details.
-
+- Google Cloud Project (Vertex AI, Cloud Run APIs enabled)
+- Python 3.11+
+- Docker (for deployment)
