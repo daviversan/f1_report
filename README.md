@@ -114,38 +114,13 @@ This project demonstrates **three** Generative AI capabilities required for the 
 
 ### Prerequisites
 
-- **For Kaggle Notebook**: Kaggle account with access to Vertex AI / Google Cloud credentials
 - **For Local/Cloud Run**: 
   - Python 3.11+
   - Google Cloud Project with Vertex AI API enabled
   - `gcloud` CLI installed (for Cloud Run deployment)
 
-### Option 1: Kaggle Notebook (Primary Submission)
 
-1. **Upload notebook**: Upload `f1_report_notebook.ipynb` to Kaggle Notebooks
-2. **Attach runtime**: Use Python 3 GPU or CPU runtime
-3. **Configure credentials**: 
-   - Add Google Cloud service account credentials to Kaggle Secrets
-   - Key name: `GCP_SERVICE_ACCOUNT`
-   - The notebook will automatically detect and use these credentials
-4. **Run cells**: Execute cells in order:
-   - Cell 1: Install dependencies (`%pip install ...`)
-   - Cell 2: Imports and configuration
-   - Cell 3: Initialize services (FastF1 cache, Vertex AI)
-   - Cell 4+: Use the agent functions to generate reports
-
-**Example usage in notebook:**
-```python
-# Generate report for Monaco GP
-result = generate_race_report("Monaco")
-print(result['social_media_post'])
-
-# Search past reports
-search_results = search_reports("Monaco")
-print(search_results)
-```
-
-### Option 2: Local Development
+### Option 1: Local Development
 
 1. **Clone repository**:
    ```bash
@@ -177,7 +152,7 @@ print(search_results)
 
 6. **Test the API** (see Testing section below)
 
-### Option 3: Deploy to Cloud Run
+### Option 2: Deploy to Cloud Run
 
 You can deploy the FastAPI service to Google Cloud Run for a production-ready API:
 
