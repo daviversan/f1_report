@@ -1,3 +1,15 @@
+# Ignore FastF1 cache directory
+f1_cache/
+
+# Python caches
+__pycache__/
+*.py[cod]
+
+# Virtual environment
+.venv/
+
+# Editor directories
+.vscode/
 # Python
 __pycache__/
 *.py[cod]
