@@ -360,7 +360,15 @@ async def lifespan(app: FastAPI):
     except Exception:
         # Allow local/unauthenticated runs; Gemini will fail lazily on first call
         pass
-    fastf1.Cache.enable_cache('f1_cache')
+    # Ensure cache directory exists (avoid startup crash if missing).
+    cache_dir = os.getenv('FASTF1_CACHE_DIR', 'f1_cache')
+    try:
+        os.makedirs(cache_dir, exist_ok=True)
+    except Exception:
+        # If directory creation fails (permissions, etc.), allow fastf1 to
+        # raise a meaningful error when trying to enable cache.
+        pass
+    fastf1.Cache.enable_cache(cache_dir)
 
     # For this project we don't require a real Agent Engine ID.
     # MemoryService will fall back to local JSON storage when
